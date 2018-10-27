@@ -15,32 +15,26 @@
 //      and bounds   XL <= X <= XU
 //
 //
-//     The problem statement of this example is given below. You can use 
-//     this example as template to run your own problem. To do so: Replace 
-//     the objective functions 'F' (and in case the constraints 'G') given 
+//     The problem statement of this example is given below. You can use
+//     this example as template to run your own problem. To do so: Replace
+//     the objective functions 'F' (and in case the constraints 'G') given
 //     here with your own problem and follow the below instruction steps.
 */
 /***********************************************************************/
+#include <midaco_core.h>
+
 #include <omp.h> /* OpenMP-Library */
 #include <stdlib.h>
 #include <stdio.h>
+
 /***********************************************************************/
 void problem_function( double *F, double *G, double *X );
 /***********************************************************************/
-extern"C"{ int midaco(long int*,long int*,long int*,long int*,long int*,
-                      long int*,double*,double*,double*,double*,double*,
-                      long int*,long int*,double*,double*,long int*,
-                      long int*,long int*,double*,long int*,char*);}
-/***********************************************************************/
-extern"C"{ int midaco_print(int,long int,long int,long int*,long int*,double*,
-                            double*,double*,double*,double*,long int,long int,
-                            long int,long int,long int,double*,double*,
-                            long int,long int,double*,long int,char*);}
 /***********************************************************************/
 /************************   MAIN PROGRAM   *****************************/
 /***********************************************************************/
-int main() 
-{   
+int main()
+{
       /* Variable and Workspace Declarations */
       long int o,n,ni,m,me,maxeval,maxtime,printeval,save2file,iflag,istop;
       long int liw,lrw,lpf,i,iw[5000],p=1; double rw[20000],pf[20000];
@@ -59,35 +53,35 @@ int main()
       m  = 3; /* Number of constraints (in total)              */
       me = 1; /* Number of equality constraints (0 <= me <= m) */
 
-      /* STEP 1.B: Lower and upper bounds 'xl' & 'xu'  
-      **********************************************/ 
+      /* STEP 1.B: Lower and upper bounds 'xl' & 'xu'
+      **********************************************/
       for( i=0; i<n; i++)
-      { 
-         xl[i] = 1.0; 
-         xu[i] = 4.0; 
+      {
+         xl[i] = 1.0;
+         xu[i] = 4.0;
       }
 
-      /* STEP 1.C: Starting point 'x'  
-      ******************************/     
+      /* STEP 1.C: Starting point 'x'
+      ******************************/
       for( i=0; i<n; i++)
-      { 
+      {
          x[i] = xl[i]; /* Here for example: starting point = lower bounds */
-      } 
+      }
 
       /*****************************************************************/
       /***  Step 2: Choose stopping criteria and printing options   ****/
       /*****************************************************************/
 
-      /* STEP 2.A: Stopping criteria 
+      /* STEP 2.A: Stopping criteria
       *****************************/
       maxeval = 10000;    /* Maximum number of function evaluation (e.g. 1000000)  */
       maxtime = 60*60*24; /* Maximum time limit in Seconds (e.g. 1 Day = 60*60*24) */
 
-      /* STEP 2.B: Printing options  
+      /* STEP 2.B: Printing options
       ****************************/
       printeval = 1000; /* Print-Frequency for current best solution (e.g. 1000) */
       save2file = 1;    /* Save SCREEN and SOLUTION to TXT-files [ 0=NO/ 1=YES]  */
-    
+
       /*****************************************************************/
       /***  Step 3: Choose MIDACO parameters (FOR ADVANCED USERS)    ***/
       /*****************************************************************/
@@ -104,67 +98,67 @@ int main()
       param[ 9] =  0.0;  /* PARETOMAX */
       param[10] =  0.0;  /* EPSILON   */
       param[11] =  0.0;  /* BALANCE   */
-      param[12] =  0.0;  /* CHARACTER */ 
+      param[12] =  0.0;  /* CHARACTER */
 
       /*****************************************************************/
       /***  Step 4: Choose Parallelization Factor    *******************/
-      /*****************************************************************/  
+      /*****************************************************************/
 
       p = 4; /* Serial = 1, Parallel = 2,3,4,... */
 
       /*****************************************************************/
       /*****************************************************************/
-      /*****************************************************************/            
+      /*****************************************************************/
       /* Preparations for Parallelization */
-      int nthreads,c;   
-      double *xxx,*fff,*ggg; 
-      #pragma omp parallel private(c) 
+      int nthreads,c;
+      double *xxx,*fff,*ggg;
+      #pragma omp parallel private(c)
       nthreads = omp_get_num_threads(); omp_set_num_threads(p);
       printf("\n [ Available threads on this machine: %i ] \n",nthreads);
       /* Allocate arrays for parallelization */
       fff = (double *) malloc((p*o)*sizeof(double));
       ggg = (double *) malloc((p*m)*sizeof(double));
-      xxx = (double *) malloc((p*n)*sizeof(double));     
+      xxx = (double *) malloc((p*n)*sizeof(double));
       /* Store starting point x in xxx array */
-      for( c=0; c<p; c++){ for( i=0; i<n; i++){ xxx[c*n+i] = x[i]; }}        
+      for( c=0; c<p; c++){ for( i=0; i<n; i++){ xxx[c*n+i] = x[i]; }}
       /*****************************************************************/
-      /*   
+      /*
          Call MIDACO by Reverse Communication
       */
       /*****************************************************************/
       /* Workspace length calculation */
-      lrw=sizeof(rw)/sizeof(double); 
-      lpf=sizeof(pf)/sizeof(double);   
-      liw=sizeof(iw)/sizeof(long int);     
+      lrw=sizeof(rw)/sizeof(double);
+      lpf=sizeof(pf)/sizeof(double);
+      liw=sizeof(iw)/sizeof(long int);
       /* Print midaco headline and basic information */
       midaco_print(1,printeval,save2file,&iflag,&istop,&*f,&*g,&*x,
         &*xl,&*xu,o,n,ni,m,me,&*rw,&*pf,maxeval,maxtime,&*param,p,&*key);
       while(istop==0) /*~~~ Start of the reverse communication loop ~~~*/
-      {   
+      {
         /* Evaluate block of 'P' iterates in parallel */
-        #pragma omp parallel for                             
+        #pragma omp parallel for
         for (c=0; c<p; c++)
-        { 
-        	problem_function( &fff[c*o], &ggg[c*m], &xxx[c*n]); 
-        }  
-                           
+        {
+          problem_function( &fff[c*o], &ggg[c*m], &xxx[c*n]);
+        }
+
           /* Call MIDACO */
           midaco(&p,&o,&n,&ni,&m,&me,&*xxx,&*fff,&*ggg,&*xl,&*xu,&iflag,
-                 &istop,&*param,&*rw,&lrw,&*iw,&liw,&*pf,&lpf,&*key);                  
-          /* Call MIDACO printing routine */            
+                 &istop,&*param,&*rw,&lrw,&*iw,&liw,&*pf,&lpf,&*key);
+          /* Call MIDACO printing routine */
           midaco_print(2,printeval,save2file,&iflag,&istop,&*fff,&*ggg,&*xxx,
-            &*xl,&*xu,o,n,ni,m,me,&*rw,&*pf,maxeval,maxtime,&*param,p,&*key);   
-      } /*~~~End of the reverse communication loop ~~~*/  
+            &*xl,&*xu,o,n,ni,m,me,&*rw,&*pf,maxeval,maxtime,&*param,p,&*key);
+      } /*~~~End of the reverse communication loop ~~~*/
       /*****************************************************************/
       // printf("\n Solution f[0] = %f ", fff[0]);
       // printf("\n Solution g[0] = %f ", ggg[0]);
-      // printf("\n Solution x[0] = %f ", xxx[0]);     
-      // for( i=0; i<n; i++){ x[i] = xxx[i]; } /* Retrieve x from xxx */       
-      /*****************************************************************/      
+      // printf("\n Solution x[0] = %f ", xxx[0]);
+      // for( i=0; i<n; i++){ x[i] = xxx[i]; } /* Retrieve x from xxx */
+      /*****************************************************************/
       return 0;
       /*****************************************************************/
       /***********************  END OF MAIN  ***************************/
-      /*****************************************************************/ 
+      /*****************************************************************/
 }
 
 
@@ -182,22 +176,21 @@ void problem_function( double *f, double *g, double *x )
          + 1.23456789;
 
     /* Equality constraints G(X) = 0 MUST COME FIRST in g[0:me-1] */
-    g[0] = x[0] - 1.0; 
+    g[0] = x[0] - 1.0;
     /* Inequality constraints G(X) >= 0 MUST COME SECOND in g[me:m-1] */
     g[1] = x[1] - 1.333333333;
     g[2] = x[2] - 2.666666666;
 
     /******************************************************************/
     /* Dummy calculation to simulate cpu-time intensive F calculation */
-    /******************************************************************/ 
+    /******************************************************************/
     double dummy = 0.01;
     while( dummy > 1.0e-8 )
     {
       dummy = dummy - (1.0e-8*x[0]);
     }
-    f[0] = f[0] + dummy;     
+    f[0] = f[0] + dummy;
 }
 /***********************************************************************/
 /*************************** END OF FILE *******************************/
 /***********************************************************************/
-
