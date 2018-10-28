@@ -58,25 +58,27 @@ int main(int argc, char** argv)
     problem->GetBounds(lb.data(), ub.data());
 
     MidacoSolution solution;
+    bool isSolved = false;
     if (maxEvalsStop)
       solution = solve_midaco_omp(problem.get(), parameters);
     else
     {
-      auto stop_criterion = [&opt, &lb, &ub, eps](const double* y)
+      auto stop_criterion = [&isSolved, &opt, &lb, &ub, eps](const double* y)
       {
         for(size_t i = 0; i < opt.size(); i++)
           if (fabs(opt[i] - y[i]) > (ub[i] - lb[i])*eps)
             return false;
+        isSolved = true;
         return true;
       };
       solution = solve_midaco_omp(problem.get(), parameters, stop_criterion);
     }
     allStatistics.push_back(solution.calcCounters);
 
-    bool isSolved = true;
-    for(size_t i = 0; i < opt.size(); i++)
-      if (fabs(opt[i] - solution.optPoint[i]) > (ub[i] - lb[i])*eps)
-        isSolved = false;
+    if (maxEvalsStop)
+      for(size_t i = 0; i < opt.size(); i++)
+        if (fabs(opt[i] - solution.optPoint[i]) > (ub[i] - lb[i])*eps)
+          isSolved = false;
     std::cout << "Problem # " << i + 1;
     if (isSolved)
     {
@@ -126,7 +128,7 @@ void saveStatistics(const std::vector<std::vector<int>>& stat, const cmdline::pa
   }
   for(size_t j = 0; j < numFuncs; j++)
   {
-    stdCalcs[j] = sqrt(stdCalcs[j] / std::max(solvedCounter - 1., 1e-7));
+    stdCalcs[j] = sqrt(stdCalcs[j] / (solvedCounter + 1e-10));
     std::cout << "Average calculations number of function # " << j << " = "
               <<   avgCalcs[j] << " +- " << stdCalcs[j] << "\n";
   }
