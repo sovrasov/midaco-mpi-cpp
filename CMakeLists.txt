@@ -16,15 +16,12 @@ add_subdirectory(3rd-party/global-optimization-test-problems)
 
 add_library(${PROJECT_NAME_STR}_core ${CMAKE_CURRENT_SOURCE_DIR}/src/midaco_core.h
                     ${CMAKE_CURRENT_SOURCE_DIR}/src/midaco_core.c)
-set_property(TARGET ${PROJECT_NAME_STR}_core PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_include_directories(${PROJECT_NAME_STR}_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 #OMP library and sample
 add_library(${PROJECT_NAME_STR}_omp ${CMAKE_CURRENT_SOURCE_DIR}/src/midaco_omp.hpp
                     ${CMAKE_CURRENT_SOURCE_DIR}/src/midaco_omp.cpp)
-set_property(TARGET ${PROJECT_NAME_STR}_omp PROPERTY POSITION_INDEPENDENT_CODE ON)
-target_link_libraries(${PROJECT_NAME_STR}_omp ${PROJECT_NAME_STR}_core)
-target_link_libraries(${PROJECT_NAME_STR}_omp ${OpenMP_CXX_LIBRARIES})
+target_link_libraries(${PROJECT_NAME_STR}_omp ${PROJECT_NAME_STR}_core ${OpenMP_CXX_LIBRARIES})
 set_target_properties(${PROJECT_NAME_STR}_omp PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
 target_include_directories(${PROJECT_NAME_STR}_omp PUBLIC ${GO_INTERFACE_INCLUDE_DIR}/)
 
@@ -34,9 +31,13 @@ target_include_directories(omp_example PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/3rd-p
                                                ${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/json)
 
 #MPI library and sample
-#add_executable(mpi_example ${CMAKE_CURRENT_SOURCE_DIR}/samples/mpi_sample.cpp)
-#target_link_libraries(mpi_example ${MPI_CXX_LIBRARIES} ${PROJECT_NAME_STR}_core)
-#target_include_directories(mpi_example PRIVATE ${MPI_CXX_INCLUDE_PATH})
+add_library(${PROJECT_NAME_STR}_mpi ${CMAKE_CURRENT_SOURCE_DIR}/src/midaco_mpi.hpp
+                                    ${CMAKE_CURRENT_SOURCE_DIR}/src/midaco_mpi.cpp)
+target_link_libraries(${PROJECT_NAME_STR}_mpi ${PROJECT_NAME_STR}_core ${MPI_CXX_LIBRARIES})
+target_include_directories(${PROJECT_NAME_STR}_mpi PUBLIC ${GO_INTERFACE_INCLUDE_DIR}/ ${MPI_CXX_INCLUDE_PATH})
+
+add_executable(mpi_example ${CMAKE_CURRENT_SOURCE_DIR}/samples/mpi_sample.cpp)
+target_link_libraries(mpi_example ${PROJECT_NAME_STR}_mpi)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
   target_compile_options(${PROJECT_NAME_STR}_core INTERFACE -Wall -march=native)

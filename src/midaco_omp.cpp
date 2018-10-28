@@ -1,7 +1,6 @@
 #include "midaco_omp.hpp"
 
 #include <midaco_core.h>
-#include <cstdio>
 #include <omp.h>
 
 MidacoSolution solve_midaco_omp(const IGOProblem<double>* problem, const MidacoOMPParameters& params,
@@ -71,10 +70,10 @@ MidacoSolution solve_midaco_omp(const IGOProblem<double>* problem, const MidacoO
   /*****************************************************************/
   /*****************************************************************/
   /* Preparations for Parallelization */
-  int nthreads,c;
+  int c;
   double *xxx,*fff,*ggg;
   #pragma omp parallel private(c)
-  nthreads = omp_get_num_threads(); omp_set_num_threads(p);
+  omp_set_num_threads(p);
   /* Allocate arrays for parallelization */
   fff = (double *) malloc((p*o)*sizeof(double));
   ggg = (double *) malloc((p*m)*sizeof(double));
