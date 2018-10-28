@@ -48,11 +48,11 @@ MidacoSolution solve_midaco_omp(const IGOProblem<double>* problem, const MidacoO
   /*****************************************************************/
 
   param[ 0] =  0.0;  /* ACCURACY  */
-  param[ 1] =  0.0;  /* SEED      */
+  param[ 1] =  params.seed;  /* SEED      */
   param[ 2] =  0.0;  /* FSTOP     */
   param[ 3] =  0.0;  /* ALGOSTOP  */
   param[ 4] =  0.0;  /* EVALSTOP  */
-  param[ 5] =  0.0;  /* FOCUS     */
+  param[ 5] =  params.focus;  /* FOCUS     */
   param[ 6] =  0.0;  /* ANTS      */
   param[ 7] =  0.0;  /* KERNEL    */
   param[ 8] =  0.0;  /* ORACLE    */

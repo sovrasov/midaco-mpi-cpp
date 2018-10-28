@@ -9,6 +9,8 @@ struct MidacoOMPParameters
 {
   unsigned numThreads = 1;
   unsigned maxEvals = 1000;
+  double focus = 0.;
+  double seed = 0.;
 };
 
 struct MidacoSolution
