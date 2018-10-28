@@ -7,8 +7,8 @@
 
 struct MidacoOMPParameters
 {
-  unsigned numThreads;
-  unsigned maxEvals;
+  unsigned numThreads = 1;
+  unsigned maxEvals = 1000;
 };
 
 struct MidacoSolution
@@ -18,5 +18,5 @@ struct MidacoSolution
   std::vector<int> calcCounters;
 };
 
-MidacoSolution solve_midaco_omp(IGOProblem<double>*, const MidacoOMPParameters& params,
+MidacoSolution solve_midaco_omp(const IGOProblem<double>*, const MidacoOMPParameters& params,
       std::function<bool(const double*)> external_stop = [](const double*){ return false; });

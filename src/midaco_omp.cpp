@@ -4,7 +4,7 @@
 #include <cstdio>
 #include <omp.h>
 
-MidacoSolution solve_midaco_omp(IGOProblem<double>* problem, const MidacoOMPParameters& params,
+MidacoSolution solve_midaco_omp(const IGOProblem<double>* problem, const MidacoOMPParameters& params,
     std::function<bool(const double*)> external_stop)
 {
   MidacoSolution solution;
@@ -75,7 +75,6 @@ MidacoSolution solve_midaco_omp(IGOProblem<double>* problem, const MidacoOMPPara
   double *xxx,*fff,*ggg;
   #pragma omp parallel private(c)
   nthreads = omp_get_num_threads(); omp_set_num_threads(p);
-  printf("\n [ Available threads on this machine: %i ] \n",nthreads);
   /* Allocate arrays for parallelization */
   fff = (double *) malloc((p*o)*sizeof(double));
   ggg = (double *) malloc((p*m)*sizeof(double));
@@ -104,7 +103,9 @@ MidacoSolution solve_midaco_omp(IGOProblem<double>* problem, const MidacoOMPPara
       for (int i = 0; i < problem->GetConstraintsNumber(); i++)
         ggg[c*m + i] = problem->Calculate(xxx + c*n, i);
       fff[c*o] = problem->Calculate(xxx + c*n, m);
-      //problem_function( &fff[c*o], &ggg[c*m], &xxx[c*n]);
+      if (external_stop(xxx + c*n))
+      #pragma omp atomic write
+        istop = 1;
     }
     n_evals += p;
     /* Call MIDACO */
@@ -115,10 +116,6 @@ MidacoSolution solve_midaco_omp(IGOProblem<double>* problem, const MidacoOMPPara
       &*xl,&*xu,o,n,ni,m,me,&*rw,&*pf,maxeval,maxtime,&*param,p,&*key);
   } /*~~~End of the reverse communication loop ~~~*/
   /*****************************************************************/
-  // printf("\n Solution f[0] = %f ", fff[0]);
-  // printf("\n Solution g[0] = %f ", ggg[0]);
-  // printf("\n Solution x[0] = %f ", xxx[0]);
-  // for( i=0; i<n; i++){ x[i] = xxx[i]; } /* Retrieve x from xxx */
   solution.optValues = std::vector<double>(f, f + m);
   solution.optPoint = std::vector<double>(xxx, xxx + n);
   solution.calcCounters = std::vector<int>(m + 1, n_evals);
