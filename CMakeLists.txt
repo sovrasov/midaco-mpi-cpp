@@ -28,7 +28,8 @@ target_include_directories(${PROJECT_NAME_STR}_omp PUBLIC ${GO_INTERFACE_INCLUDE
 add_executable(omp_example ${CMAKE_CURRENT_SOURCE_DIR}/samples/omp_sample.cpp)
 target_link_libraries(omp_example ${PROJECT_NAME_STR}_omp grishagin_functions gkls_functions)
 target_include_directories(omp_example PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/cmdline/
-                                               ${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/json)
+                                               ${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/json
+                                               ${CMAKE_CURRENT_SOURCE_DIR}/samples)
 
 #MPI library and sample
 add_library(${PROJECT_NAME_STR}_mpi ${CMAKE_CURRENT_SOURCE_DIR}/src/midaco_mpi.hpp
@@ -37,7 +38,10 @@ target_link_libraries(${PROJECT_NAME_STR}_mpi ${PROJECT_NAME_STR}_core ${MPI_CXX
 target_include_directories(${PROJECT_NAME_STR}_mpi PUBLIC ${GO_INTERFACE_INCLUDE_DIR}/ ${MPI_CXX_INCLUDE_PATH})
 
 add_executable(mpi_example ${CMAKE_CURRENT_SOURCE_DIR}/samples/mpi_sample.cpp)
-target_link_libraries(mpi_example ${PROJECT_NAME_STR}_mpi)
+target_link_libraries(mpi_example ${PROJECT_NAME_STR}_mpi grishagin_functions gkls_functions)
+target_include_directories(mpi_example PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/cmdline/
+                                               ${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/json
+                                               ${CMAKE_CURRENT_SOURCE_DIR}/samples)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
   target_compile_options(${PROJECT_NAME_STR}_core INTERFACE -Wall -march=native)

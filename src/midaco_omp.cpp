@@ -115,7 +115,8 @@ MidacoSolution solve_midaco_omp(const IGOProblem<double>* problem, const MidacoO
       &*xl,&*xu,o,n,ni,m,me,&*rw,&*pf,maxeval,maxtime,&*param,p,&*key);
   } /*~~~End of the reverse communication loop ~~~*/
   /*****************************************************************/
-  solution.optValues = std::vector<double>(f, f + m);
+  solution.optValues = std::vector<double>(ggg, ggg + m);
+  solution.optValues.push_back(*fff);
   solution.optPoint = std::vector<double>(xxx, xxx + n);
   solution.calcCounters = std::vector<int>(m + 1, n_evals);
 
