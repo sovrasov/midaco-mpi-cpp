@@ -8,8 +8,6 @@
 #include <gkls_function.hpp>
 #include <grishagin_function.hpp>
 #include <midaco_omp.hpp>
-#include <cmdline.h>
-#include <json.hpp>
 
 #include "common.hpp"
 
@@ -29,8 +27,8 @@ int main(int argc, char** argv)
   bool maxEvalsStop = parser.exist("maxEvalsStop");
 
   std::string problemClass = parser.get<std::string>("problemsClass");
-  auto start = std::chrono::system_clock::now();
   std::vector<std::vector<int>> allStatistics;
+  double totalTime = 0.0;
 
   for (int i = 0; i < 100; i++)
   {
@@ -58,6 +56,7 @@ int main(int argc, char** argv)
     std::vector<double> lb(problem->GetDimension()), ub(problem->GetDimension());
     problem->GetBounds(lb.data(), ub.data());
 
+    auto start = std::chrono::system_clock::now();
     MidacoSolution solution;
     bool isSolved = false;
     if (maxEvalsStop)
@@ -74,6 +73,9 @@ int main(int argc, char** argv)
       };
       solution = solve_midaco_omp(problem.get(), parameters, stop_criterion);
     }
+    auto end = std::chrono::system_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end - start;
+    totalTime += elapsed_seconds.count();
     allStatistics.push_back(solution.calcCounters);
 
     if (maxEvalsStop)
@@ -93,12 +95,11 @@ int main(int argc, char** argv)
     }
     std::cout << " Iterations performed: " << allStatistics.back()[0] << "\n";
   }
-  auto end = std::chrono::system_clock::now();
 
-  std::chrono::duration<double> elapsed_seconds = end - start;
-  std::cout << "Time elapsed: " << elapsed_seconds.count() << "s\n";
+  std::cout << "Time elapsed: " << totalTime << "s\n";
+  std::cout << "Avg time per problem: " << totalTime / 100. << "s\n";
 
-  saveStatistics(allStatistics, parser);
+  saveStatistics(allStatistics, totalTime / 100., parser, "MIDACO OMP");
 
   return 0;
 }

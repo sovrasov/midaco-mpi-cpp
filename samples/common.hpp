@@ -1,6 +1,13 @@
 #pragma once
 
-static inline void saveStatistics(const std::vector<std::vector<int>>& stat, const cmdline::parser& parser)
+#include <vector>
+#include <string>
+#include <cmdline.h>
+#include <json.hpp>
+
+static inline void saveStatistics(const std::vector<std::vector<int>>& stat,
+                                  double avgTime, const cmdline::parser& parser,
+                                  const std::string& capture = "")
 {
   size_t numFuncs = stat.back().size() - 1;
   std::vector<double> avgCalcs(numFuncs, 0.);
@@ -64,6 +71,7 @@ static inline void saveStatistics(const std::vector<std::vector<int>>& stat, con
     j["calc_counters_std"] = stdCalcs;
     j["calc_counters"] = avgCalcs;
     j["capture"] = "MIDACO OpenMP";
+    j["avg_time"] = avgTime;
 
     std::vector<int> cmc_iters;
     std::vector<double> cmc_values;
