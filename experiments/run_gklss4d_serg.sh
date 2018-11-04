@@ -1,0 +1,1 @@
+../build/bin/omp_example -s —a 0.031622776601683 -e 150000 -p 1 -d 4 -c gklsS -f gklss4d_serg/midaco.json
