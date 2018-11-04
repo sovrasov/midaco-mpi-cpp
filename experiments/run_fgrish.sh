@@ -1,0 +1,1 @@
+../build/bin/omp_example -s —a 0.02 e 5000 -p 1 -d 2 -c grish -f grish/midaco.json
