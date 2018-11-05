@@ -100,7 +100,7 @@ std::function<double()> buildComputeLoad(double delay)
 
   double estimatedTime = 0;
   unsigned complexity = 0;
-  unsigned delta = 5000;
+  unsigned delta = 1000;
 
   auto computeKernel = [](unsigned iters)
   {
@@ -127,7 +127,7 @@ std::function<double()> buildComputeLoad(double delay)
     estimatedTime = elapsed_seconds.count() / 100;
   }
   while(estimatedTime * 1000. < delay);
-  std::cout << "Estimated delay:" << estimatedTime*1000 << '\n';
+  std::cout << "Estimated delay: " << estimatedTime*1000 << "\t complexity: " << complexity << '\n';
 
   return std::bind(computeKernel, complexity);
 }
