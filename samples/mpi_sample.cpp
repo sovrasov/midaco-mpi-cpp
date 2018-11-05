@@ -9,6 +9,7 @@
 #include <midaco_mpi.hpp>
 #include <gkls_function.hpp>
 #include <grishagin_function.hpp>
+#include <problem_wrapper.hpp>
 
 #include "common.hpp"
 
@@ -33,10 +34,11 @@ int main( int argc, char **argv)
   std::string problemClass = parser.get<std::string>("problemsClass");
   std::vector<std::vector<int>> allStatistics;
   double totalTime = 0.0;
+  auto computeLoad = buildComputeLoad(parser.get<double>("delay"));
 
   for (int i = 0; i < 100; i++)
   {
-    std::shared_ptr<IGOProblem<double>> problem;
+    std::shared_ptr<IGOProblem<double>> problemPtr;
     if (problemClass == "gklsS" || problemClass == "gklsH")
     {
       auto *func = new gkls::GKLSFunction();
@@ -47,24 +49,26 @@ int main( int argc, char **argv)
 
       func->SetType(gkls::TD);
       func->SetFunctionNumber(i + 1);
-      problem = std::shared_ptr<IGOProblem<double>>(func);
+      problemPtr = std::shared_ptr<IGOProblem<double>>(func);
     }
     else if (problemClass == "grish")
     {
       auto *func = new vagrish::GrishaginFunction();
       func->SetFunctionNumber(i + 1);
-      problem = std::shared_ptr<IGOProblem<double>>(func);
+      problemPtr = std::shared_ptr<IGOProblem<double>>(func);
     }
-    std::vector<double> opt(problem->GetDimension());
-    problem->GetOptimumPoint(opt.data());
-    std::vector<double> lb(problem->GetDimension()), ub(problem->GetDimension());
-    problem->GetBounds(lb.data(), ub.data());
+    GOTestProblemWrapper<double> problem(problemPtr);
+    problem.SetComputeLoad(computeLoad);
+    std::vector<double> opt(problem.GetDimension());
+    problem.GetOptimumPoint(opt.data());
+    std::vector<double> lb(problem.GetDimension()), ub(problem.GetDimension());
+    problem.GetBounds(lb.data(), ub.data());
 
     auto start = std::chrono::system_clock::now();
     MidacoSolution solution;
     bool isSolved = false;
     if (maxEvalsStop)
-      solution = solve_midaco_mpi(problem.get(), parameters);
+      solution = solve_midaco_mpi(&problem, parameters);
     else
     {
       auto stop_criterion = [&isSolved, &opt, &lb, &ub, eps](const double* y)
@@ -75,7 +79,7 @@ int main( int argc, char **argv)
         isSolved = true;
         return true;
       };
-      solution = solve_midaco_mpi(problem.get(), parameters, stop_criterion);
+      solution = solve_midaco_mpi(&problem, parameters, stop_criterion);
     }
     if (rank == 0)
     {
@@ -122,7 +126,8 @@ void initParser(cmdline::parser& parser)
   parser.add<unsigned>("dim", 'd', "test problem dimension (will be set if supported)", false, 2);
   parser.add<std::string>("problemsClass", 'c', "Name of the used problems class", false,
     "gklsS", cmdline::oneof<std::string>("gklsS", "gklsH", "grish"));
-  parser.add<std::string>("outFile", 'f', "Name of the output .csv file with statistics", false, "");
+  parser.add<std::string>("outFile", 'f', "Name of the output .json file with statistics", false, "");
   parser.add("maxEvalsStop", 'm', "Stop by max evals");
   parser.add("saveStat", 's', "Save statistics in a .json file");
+  parser.add<double>("delay", 0, "Delay in objective functions (ms)", false, 0);
 }
