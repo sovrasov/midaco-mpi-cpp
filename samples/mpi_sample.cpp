@@ -1,10 +1,10 @@
+#include <mpi.h>
 #include <iostream>
 #include <fstream>
 #include <chrono>
 #include <string>
 #include <memory>
 #include <cmath>
-#include <mpi.h>
 
 #include <midaco_mpi.hpp>
 #include <gkls_function.hpp>
