@@ -4,8 +4,14 @@
 #include <string>
 #include <cmdline.h>
 #include <json.hpp>
+#include <functional>
+#include <cmath>
+#include <chrono>
 
-static inline void saveStatistics(const std::vector<std::vector<int>>& stat,
+namespace
+{
+
+void saveStatistics(const std::vector<std::vector<int>>& stat,
                                   double avgTime, const cmdline::parser& parser,
                                   const std::string& capture = "")
 {
@@ -85,4 +91,45 @@ static inline void saveStatistics(const std::vector<std::vector<int>>& stat,
 
     fout << j;
   }
+}
+
+std::function<double()> buildComputeLoad(double delay)
+{
+  if (delay == 0)
+    return [] {return 1;};
+
+  double estimatedTime = 0;
+  unsigned complexity = 0;
+  unsigned delta = 1000;
+
+  auto computeKernel = [](unsigned iters)
+  {
+    double value = 0;
+    for (unsigned i = 0; i < iters; i++)
+    {
+      double a1 = fma(value, 2., value + 1.);
+      double a2 = fma(value, 1., a1);
+      value = a2 - a1;
+    }
+    return value + 1.;
+  };
+
+  do
+  {
+    complexity += delta;
+    auto start = std::chrono::system_clock::now();
+    for(int i = 0; i < 100; i++)
+    {
+      computeKernel(complexity);
+    }
+    auto end = std::chrono::system_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end - start;
+    estimatedTime = elapsed_seconds.count() / 100;
+  }
+  while(estimatedTime * 1000. < delay);
+  std::cout << "Estimated delay: " << estimatedTime*1000 << "\t complexity: " << complexity << '\n';
+
+  return std::bind(computeKernel, complexity);
+}
+
 }

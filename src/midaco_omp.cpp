@@ -70,16 +70,14 @@ MidacoSolution solve_midaco_omp(const IGOProblem<double>* problem, const MidacoO
   /*****************************************************************/
   /*****************************************************************/
   /* Preparations for Parallelization */
-  int c;
   double *xxx,*fff,*ggg;
-  #pragma omp parallel private(c)
   omp_set_num_threads(p);
   /* Allocate arrays for parallelization */
   fff = (double *) malloc((p*o)*sizeof(double));
   ggg = (double *) malloc((p*m)*sizeof(double));
   xxx = (double *) malloc((p*n)*sizeof(double));
   /* Store starting point x in xxx array */
-  for( c=0; c<p; c++){ for( i=0; i<n; i++){ xxx[c*n+i] = x[i]; }}
+  for(int c=0; c<p; c++){ for( i=0; i<n; i++){ xxx[c*n+i] = x[i]; }}
   /*****************************************************************/
   /*
      Call MIDACO by Reverse Communication
@@ -97,7 +95,7 @@ MidacoSolution solve_midaco_omp(const IGOProblem<double>* problem, const MidacoO
   {
     /* Evaluate block of 'P' iterates in parallel */
     #pragma omp parallel for
-    for (c=0; c<p; c++)
+    for (int c=0; c<p; c++)
     {
       for (int i = 0; i < problem->GetConstraintsNumber(); i++)
         ggg[c*m + i] = problem->Calculate(xxx + c*n, i);

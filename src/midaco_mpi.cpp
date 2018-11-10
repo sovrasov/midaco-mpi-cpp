@@ -1,7 +1,8 @@
+#include <mpi.h>
 #include "midaco_mpi.hpp"
 
 #include <midaco_core.h>
-#include <mpi.h>
+#include <omp.h>
 
 MidacoSolution solve_midaco_mpi(const IGOProblem<double>* problem, const MidacoMPIParameters& params,
     std::function<bool(const double*)> external_stop)
@@ -9,11 +10,10 @@ MidacoSolution solve_midaco_mpi(const IGOProblem<double>* problem, const MidacoM
   MidacoSolution solution;
 
   /* Prepare MPI parallelization */
-    int thread, nthreads;
+    int proc, nprocs;
     MPI_Status status;
-    //MPI_Init( &argc, &argv );
-    MPI_Comm_rank( MPI_COMM_WORLD, &thread );
-    MPI_Comm_size( MPI_COMM_WORLD, &nthreads );
+    MPI_Comm_rank( MPI_COMM_WORLD, &proc );
+    MPI_Comm_size( MPI_COMM_WORLD, &nprocs );
 
     /* Variable and Workspace Declarations */
     long int o,n,ni,m,me,maxeval,maxtime,printeval,save2file,iflag,istop;
@@ -56,7 +56,7 @@ MidacoSolution solve_midaco_mpi(const IGOProblem<double>* problem, const MidacoM
     /* STEP 2.B: Printing options
     ****************************/
     printeval = 1000; /* Print-Frequency for current best solution (e.g. 1000) */
-    save2file = 1;    /* Save SCREEN and SOLUTION to TXT-files [ 0=NO/ 1=YES]  */
+    save2file = 0;    /* Save SCREEN and SOLUTION to TXT-files [ 0=NO/ 1=YES]  */
 
     /*****************************************************************/
     /***  Step 3: Choose MIDACO parameters (FOR ADVANCED USERS)    ***/
@@ -80,24 +80,26 @@ MidacoSolution solve_midaco_mpi(const IGOProblem<double>* problem, const MidacoM
     /***  Step 4: Choose Parallelization Factor    *******************/
     /*****************************************************************/
 
-    p = nthreads; // nthreads argument given automatically via command:
-                  // "mpirun -np nthreads ./run"
+    omp_set_num_threads(params.numThreads);
+    long int num_points = params.numThreads * nprocs;
+    p = nprocs; // nprocs argument given automatically via command:
+                  // "mpirun -np nprocs ./run"
 
     /*****************************************************************/
     /****************  Start MPI Thread Splitting    *****************/
     /*****************************************************************/
-    if (thread == 0)
+    if (proc == 0)
     {
     /*****************************************************************/
     /********************  MPI Master Thread   ***********************/
     /*****************************************************************/
     double *xxx,*fff,*ggg; int c;
     /* Allocate arrays for parallelization */
-    xxx = (double *) malloc((p*n)*sizeof(double));
-    fff = (double *) malloc((p*o)*sizeof(double));
-    ggg = (double *) malloc((p*m)*sizeof(double));
+    xxx = (double *) malloc((params.numThreads*p*n)*sizeof(double));
+    fff = (double *) malloc((params.numThreads*p*o)*sizeof(double));
+    ggg = (double *) malloc((params.numThreads*p*m)*sizeof(double));
     /* Store starting point x in xxx array */
-    for( c=0; c<p; c++){ for( i=0; i<n; i++){ xxx[c*n+i] = x[i]; }}
+    for( c=0; c<p*params.numThreads; c++){ for( i=0; i<n; i++){ xxx[c*n+i] = x[i]; }}
     /*****************************************************************/
     /*
        Call MIDACO by Reverse Communication
@@ -109,40 +111,43 @@ MidacoSolution solve_midaco_mpi(const IGOProblem<double>* problem, const MidacoM
     liw=sizeof(iw)/sizeof(long int);
     /* Print midaco headline and basic information */
     midaco_print(1,printeval,save2file,&iflag,&istop,&*f,&*g,&*x,&*xl,&*xu,
-                 o,n,ni,m,me,&*rw,&*pf,maxeval,maxtime,&*param,p,&*key);
+                 o,n,ni,m,me,&*rw,&*pf,maxeval,maxtime,&*param,num_points,&*key);
     int n_evals = 0;
     while(istop==0) /*~~~ Start of the reverse communication loop ~~~*/
     {
         for (c=2; c<=p; c++) /* Send iterates X for evaluation */
         {
           /* Store variables X in dummy dx and send to MPI slave */
-            for( i=0; i<n; i++){ x[i] = xxx[(c-1)*n+i]; }
-            MPI_Send( &x, n, MPI_DOUBLE, c-1,1, MPI_COMM_WORLD);
-            if (external_stop(x))
-              istop = 1;
+            for( i=0; i<n*params.numThreads; i++){ x[i] = xxx[(c-1)*n*params.numThreads+i]; }
+            MPI_Send( &x, n*params.numThreads, MPI_DOUBLE, c-1,1, MPI_COMM_WORLD);
+            for( i=0; i<params.numThreads; i++)
+              if (external_stop(x + i*n))
+                istop = 1;
         }
-
-        for (int i = 0; i < problem->GetConstraintsNumber(); i++)
-          ggg[i] = problem->Calculate(xxx, i);
-        *fff = problem->Calculate(xxx, m);
-        //problem_function( &*fff, &*ggg, &*xxx); /* Perform one evaluation on Master */
-        if (external_stop(xxx))
-          istop = 1;
+        #pragma omp parallel for
+        for (unsigned t = 0; t < params.numThreads; t++)  {
+          for (int i = 0; i < m; i++)
+            ggg[t*m + i] = problem->Calculate(xxx + t*n, i);
+          fff[t*o] = problem->Calculate(xxx + t*n, m);
+          if (external_stop(xxx + t*n))
+          #pragma omp atomic write
+            istop = 1;
+        }
 
         for (c=2; c<=p; c++) /* Collect results F & G */
         {
-            MPI_Recv( &f, o, MPI_DOUBLE, c-1,2, MPI_COMM_WORLD,&status);
-            MPI_Recv( &g, m, MPI_DOUBLE, c-1,3, MPI_COMM_WORLD,&status);
-            for(i=0;i<o;i++){fff[(c-1)*o+i]=f[i];}
-            for(i=0;i<m;i++){ggg[(c-1)*m+i]=g[i];}
+            MPI_Recv( &f, o*params.numThreads, MPI_DOUBLE, c-1,2, MPI_COMM_WORLD,&status);
+            MPI_Recv( &g, m*params.numThreads, MPI_DOUBLE, c-1,3, MPI_COMM_WORLD,&status);
+            for(i=0;i<o*params.numThreads;i++){fff[(c-1)*o*params.numThreads+i]=f[i];}
+            for(i=0;i<m*params.numThreads;i++){ggg[(c-1)*m*params.numThreads+i]=g[i];}
         }
-        n_evals += p;
+        n_evals += p*params.numThreads;
         /* Call MIDACO */
-        midaco(&p,&o,&n,&ni,&m,&me,&*xxx,&*fff,&*ggg,&*xl,&*xu,&iflag,
+        midaco(&num_points,&o,&n,&ni,&m,&me,&*xxx,&*fff,&*ggg,&*xl,&*xu,&iflag,
                &istop,&*param,&*rw,&lrw,&*iw,&liw,&*pf,&lpf,&*key);
         /* Call MIDACO printing routine */
         midaco_print(2,printeval,save2file,&iflag,&istop,&*fff,&*ggg,&*xxx,&*xl,&*xu,
-                     o,n,ni,m,me,&*rw,&*pf,maxeval,maxtime,&*param,p,&*key);
+                     o,n,ni,m,me,&*rw,&*pf,maxeval,maxtime,&*param,num_points,&*key);
         /* Send istop to slave */
         for (c=2; c<=p; c++)
         { MPI_Send( &istop,1, MPI_INTEGER, c-1,4, MPI_COMM_WORLD); }
@@ -152,7 +157,9 @@ MidacoSolution solve_midaco_mpi(const IGOProblem<double>* problem, const MidacoM
     solution.optValues.push_back(*fff);
     solution.optPoint = std::vector<double>(xxx, xxx + n);
     solution.calcCounters = std::vector<int>(m + 1, n_evals);
-
+    free(xxx);
+    free(fff);
+    free(ggg);
     /*****************************************************************/
     /*********************  MPI Slave Thread   ***********************/
     /*****************************************************************/
@@ -160,15 +167,17 @@ MidacoSolution solve_midaco_mpi(const IGOProblem<double>* problem, const MidacoM
        istop = 0;
        while(istop<=0)
        {
-         MPI_Recv( &x, n, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, &status );
+         MPI_Recv( &x, n*params.numThreads, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, &status );
 
-         //problem_function( &*f, &*g, &*x);
-         for (int i = 0; i < problem->GetConstraintsNumber(); i++)
-           g[i] = problem->Calculate(x, i);
-         *f = problem->Calculate(x, m);
+         #pragma omp parallel for
+         for (unsigned t = 0; t < params.numThreads; t++)  {
+           for (int i = 0; i < m; i++)
+             g[t*m + i] = problem->Calculate(x + t*n, i);
+           f[t*o] = problem->Calculate(x + t*n, m);
+         }
 
-         MPI_Send( &f, o, MPI_DOUBLE, 0, 2, MPI_COMM_WORLD );
-         MPI_Send( &g, m, MPI_DOUBLE, 0, 3, MPI_COMM_WORLD );
+         MPI_Send( &f, o*params.numThreads, MPI_DOUBLE, 0, 2, MPI_COMM_WORLD );
+         MPI_Send( &g, m*params.numThreads, MPI_DOUBLE, 0, 3, MPI_COMM_WORLD );
          MPI_Recv( &istop,1,MPI_INTEGER,0,4,MPI_COMM_WORLD, &status );
        }
     }
