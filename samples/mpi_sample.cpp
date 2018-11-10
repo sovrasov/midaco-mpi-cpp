@@ -28,6 +28,7 @@ int main( int argc, char **argv)
   MidacoMPIParameters parameters;
   parameters.focus = parser.get<int>("focus");
   double eps = parser.get<double>("accuracy");
+  parameters.numThreads = parser.get<unsigned>("numThreads");
   parameters.maxEvals = parser.get<unsigned>("maxEvals");
   bool maxEvalsStop = parser.exist("maxEvalsStop");
 
@@ -124,6 +125,7 @@ void initParser(cmdline::parser& parser)
   parser.add<int>("focus", 0, "", false, -1);
   parser.add<unsigned>("maxEvals", 'e', "limit of evaluations for the method", false, 5000);
   parser.add<unsigned>("dim", 'd', "test problem dimension (will be set if supported)", false, 2);
+  parser.add<unsigned>("numThreads", 'p', "number of OMP threads", false, 1);
   parser.add<std::string>("problemsClass", 'c', "Name of the used problems class", false,
     "gklsS", cmdline::oneof<std::string>("gklsS", "gklsH", "grish"));
   parser.add<std::string>("outFile", 'f', "Name of the output .json file with statistics", false, "");

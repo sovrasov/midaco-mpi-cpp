@@ -34,7 +34,8 @@ target_include_directories(omp_example PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/3rd-p
 #MPI library and sample
 add_library(${PROJECT_NAME_STR}_mpi ${CMAKE_CURRENT_SOURCE_DIR}/src/midaco_mpi.hpp
                                     ${CMAKE_CURRENT_SOURCE_DIR}/src/midaco_mpi.cpp)
-target_link_libraries(${PROJECT_NAME_STR}_mpi ${PROJECT_NAME_STR}_core ${MPI_CXX_LIBRARIES})
+target_link_libraries(${PROJECT_NAME_STR}_mpi ${PROJECT_NAME_STR}_core ${MPI_CXX_LIBRARIES} ${OpenMP_CXX_LIBRARIES})
+set_target_properties(${PROJECT_NAME_STR}_mpi PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
 target_include_directories(${PROJECT_NAME_STR}_mpi PUBLIC ${GO_INTERFACE_INCLUDE_DIR}/ ${MPI_CXX_INCLUDE_PATH})
 
 add_executable(mpi_example ${CMAKE_CURRENT_SOURCE_DIR}/samples/mpi_sample.cpp)
