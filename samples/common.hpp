@@ -70,6 +70,10 @@ void saveStatistics(const std::vector<std::vector<int>>& stat,
 
     std::ofstream fout;
     fout.open(fileName, std::ios_base::out);
+    if (!fout.is_open()) {
+      std::cerr << "Failed to create file " << fileName << std::endl;
+      return;
+    }
     nlohmann::json j;
 
     j["num_solved"] = solvedCounter;
