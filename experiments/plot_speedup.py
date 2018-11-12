@@ -1,16 +1,19 @@
 import argparse
 import json
+import os
 
 import matplotlib.pyplot as plt
 
-def get_single_thread_time(file_name, delay = ''):
-    data = json.load(open('openmp/' + str(file_name) + '/midaco' + str(delay) + '.json'))
+def get_single_thread_time(file_folder, delay = ''):
+    file_name = 'midaco' + str(delay) + '.json'
+    data = json.load(open(os.path.join(file_folder, file_name)))
     return data['avg_time']
 
-def get_multi_threaded_time(file_name, delay = ''):
+def get_multi_threaded_time(file_folder, delay = ''):
     avg_time = []
     for i in range(1, 5):
-        data = json.load(open('openmp/' + str(file_name) + '/midaco_'+ str(2**i) + str(delay) + '.json'))
+        file_name = 'midaco_' + str(2**i) + str(delay) + '.json'
+        data = json.load(open(os.path.join(file_folder, file_name)))
         avg_time.append(data['avg_time'])
     return avg_time
 
@@ -49,7 +52,7 @@ def plot_speedup(stats_folder, delays, show=True, filename=None,):
 def main(args):
     delays = ['_01', '_05', '_1']
     plot_speedup(args.stats_folder, delays,
-                 show = args.show, filename = 'openmp/' + args.stats_folder +'/speedup.pdf')
+                 show = args.show, filename = os.path.join(args.stats_folder, 'speedup.pdf'))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
