@@ -104,16 +104,16 @@ std::function<double()> buildComputeLoad(double delay)
 
   double estimatedTime = 0;
   unsigned complexity = 0;
-  unsigned delta = 1000;
+  unsigned delta = 100;
 
   auto computeKernel = [](unsigned iters)
   {
     double value = 0;
     for (unsigned i = 0; i < iters; i++)
     {
-      double a1 = fma(value, 2., value + 1.);
-      double a2 = fma(value, 1., a1);
-      value = a2 - a1;
+      double a1 = sin(value + i);
+      double a2 = cos(value + i);
+      value = a2*a2 + a1*a1;
     }
     return value + 1.;
   };
