@@ -80,7 +80,6 @@ MidacoSolution solve_midaco_mpi(const IGOProblem<double>* problem, const MidacoM
     /***  Step 4: Choose Parallelization Factor    *******************/
     /*****************************************************************/
 
-    omp_set_num_threads(params.numThreads);
     long int num_points = params.numThreads * nprocs;
     p = nprocs; // nprocs argument given automatically via command:
                   // "mpirun -np nprocs ./run"
@@ -124,7 +123,7 @@ MidacoSolution solve_midaco_mpi(const IGOProblem<double>* problem, const MidacoM
               if (external_stop(x + i*n))
                 istop = 1;
         }
-        #pragma omp parallel for
+        #pragma omp parallel for num_threads(params.numThreads)
         for (unsigned t = 0; t < params.numThreads; t++)  {
           for (int i = 0; i < m; i++)
             ggg[t*m + i] = problem->Calculate(xxx + t*n, i);
@@ -169,7 +168,7 @@ MidacoSolution solve_midaco_mpi(const IGOProblem<double>* problem, const MidacoM
        {
          MPI_Recv( &x, n*params.numThreads, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, &status );
 
-         #pragma omp parallel for
+         #pragma omp parallel for num_threads(params.numThreads)
          for (unsigned t = 0; t < params.numThreads; t++)  {
            for (int i = 0; i < m; i++)
              g[t*m + i] = problem->Calculate(x + t*n, i);
