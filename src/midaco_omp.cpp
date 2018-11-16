@@ -71,7 +71,6 @@ MidacoSolution solve_midaco_omp(const IGOProblem<double>* problem, const MidacoO
   /*****************************************************************/
   /* Preparations for Parallelization */
   double *xxx,*fff,*ggg;
-  omp_set_num_threads(p);
   /* Allocate arrays for parallelization */
   fff = (double *) malloc((p*o)*sizeof(double));
   ggg = (double *) malloc((p*m)*sizeof(double));
@@ -94,7 +93,7 @@ MidacoSolution solve_midaco_omp(const IGOProblem<double>* problem, const MidacoO
   while(istop==0) /*~~~ Start of the reverse communication loop ~~~*/
   {
     /* Evaluate block of 'P' iterates in parallel */
-    #pragma omp parallel for
+    #pragma omp parallel for num_threads(params.numThreads)
     for (int c=0; c<p; c++)
     {
       for (int i = 0; i < problem->GetConstraintsNumber(); i++)
