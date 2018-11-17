@@ -13,7 +13,7 @@ folder="gpu_mpi/gklss4d_serg"
 
 for delay in "${delays[@]}"
 do
-  delay_str=${delay//[.]/_}
+  delay_str=${delay//[.]/}
   for n_num in "${n_nodes[@]}"
   do
     srun -n $n_num ../build/bin/mpi_example -s -a $eps -e $iters -p 1 -d 4 -c $class -f $folder/midaco_"$n_num"_1_$delay_str.json --delay $delay
