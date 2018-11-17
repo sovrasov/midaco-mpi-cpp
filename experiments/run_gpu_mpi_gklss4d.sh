@@ -2,7 +2,6 @@
 #SBATCH --time=36:00:00
 #SBATCH --partition=gpu
 #SBATCH -N 12
-#SBATCH -p gpu
 srun -n 1 ../build/bin/mpi_example -s -e 150000 -p 1 -d 4 -c gklsS -f gpu_mpi/gklss4d/midaco_1_1_01.json --delay 0.1
 srun -n 2 ../build/bin/mpi_example -s -e 150000 -p 1 -d 4 -c gklsS -f gpu_mpi/gklss4d/midaco_2_1_01.json --delay 0.1
 srun -n 2 ../build/bin/mpi_example -s -e 150000 -p 16 -d 4 -c gklsS -f gpu_mpi/gklss4d/midaco_2_16_01.json --delay 0.1
