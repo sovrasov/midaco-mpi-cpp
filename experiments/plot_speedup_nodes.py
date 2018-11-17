@@ -4,20 +4,20 @@ import os
 
 import matplotlib.pyplot as plt
 
-def get_single_node_time(file_folder, delay = ''):
-    file_name = 'midaco_1_1' + str(delay) + '.json'
+def get_single_node_time(file_folder, threads, delay):
+    file_name = 'midaco_1' + str(threads) + str(delay) + '.json'
     data = json.load(open(os.path.join(file_folder, file_name)))
     return data['avg_time']
 
-def get_multi_node_time(file_folder, delay = ''):
+def get_multi_node_time(file_folder, threads, delay = ''):
     avg_time = []
     for i in [2, 4, 8, 12]:
-        file_name = 'midaco_' + str(i) + '_1' + str(delay) + '.json'
+        file_name = 'midaco_' + str(i) + str(threads) + str(delay) + '.json'
         data = json.load(open(os.path.join(file_folder, file_name)))
         avg_time.append(data['avg_time'])
     return avg_time
 
-def add_line(single_thread_time, multi_threaded_time, delay):
+def add_line(single_thread_time, multi_threaded_time, thread, delay):
     x = [2, 4, 8, 12]
     y= [single_thread_time/multi_threaded_time[i - 1] for i in range(1, 5)]
     lable = ''
@@ -27,14 +27,21 @@ def add_line(single_thread_time, multi_threaded_time, delay):
         lable = 'delay = 0.5'
     elif delay == '_1':
         lable = 'delay = 1'
+
+    if thread == '_1':
+        lable += ' threads = 1'
+    elif thread == '_16':
+        lable += ' threads = 16'
+
     plt.plot(x, y, label = lable)
 
 
-def plot_speedup_nodes(stats_folder, delays, nodes, show=True, filename=None,):
+def plot_speedup_nodes(stats_folder, nodes, threads, delays, show=True, filename=None,):
     for delay in delays:
-        single_node_time = get_single_node_time(stats_folder, delay)
-        multi_node_time = get_multi_node_time(stats_folder, delay)
-        add_line(single_node_time, multi_node_time, delay)
+        for thread in threads:
+            single_node_time = get_single_node_time(stats_folder, thread, delay)
+            multi_node_time = get_multi_node_time(stats_folder, thread, delay)
+            add_line(single_node_time, multi_node_time, thread, delay)
 
     plt.legend ()
     plt.xlabel(r'$Nodes$') 
@@ -50,10 +57,15 @@ def plot_speedup_nodes(stats_folder, delays, nodes, show=True, filename=None,):
 
 
 def main(args):
-    delays = ['_01', '_05', '_1']
     nodes = ['_1', '_2', '_4', '_8', '_12']
-    plot_speedup_nodes(args.stats_folder, delays, nodes,
-                 show = args.show, filename = os.path.join(args.stats_folder, 'speedup_nodes.pdf'))
+    threads = ['_1', '_16']
+    delays = ['_01', '_05', '_1']
+    filename = 'speedup_nodes.pdf'
+    try:
+        plot_speedup_nodes(args.stats_folder, nodes, threads, delays,
+                    show = args.show, filename = os.path.join(args.stats_folder, filename))
+    except BaseException:
+        print('Something is wrong. Most likely there are no necessary files.')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
