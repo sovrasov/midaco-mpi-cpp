@@ -4,8 +4,8 @@ import os
 
 import matplotlib.pyplot as plt
 
-def get_single_node_time(file_folder, threads, delay):
-    file_name = 'midaco_1' + str(threads) + str(delay) + '.json'
+def get_single_node_time(file_folder, delay):
+    file_name = 'midaco_1_1' + str(delay) + '.json'
     data = json.load(open(os.path.join(file_folder, file_name)))
     return data['avg_time']
 
@@ -33,13 +33,13 @@ def add_line(single_thread_time, multi_threaded_time, thread, delay):
     elif thread == '_16':
         lable += ' threads = 16'
 
-    plt.plot(x, y, label = lable)
+    plt.plot(x, y, 'o-', label = lable)
 
 
 def plot_speedup_nodes(stats_folder, nodes, threads, delays, show=True, filename=None,):
     for delay in delays:
+        single_node_time = get_single_node_time(stats_folder, delay)
         for thread in threads:
-            single_node_time = get_single_node_time(stats_folder, thread, delay)
             multi_node_time = get_multi_node_time(stats_folder, thread, delay)
             add_line(single_node_time, multi_node_time, thread, delay)
 
