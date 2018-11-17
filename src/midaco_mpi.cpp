@@ -18,7 +18,7 @@ MidacoSolution solve_midaco_mpi(const IGOProblem<double>* problem, const MidacoM
     /* Variable and Workspace Declarations */
     long int o,n,ni,m,me,maxeval,maxtime,printeval,save2file,iflag,istop;
     long int liw,lrw,lpf,i,iw[5000],p=1; double rw[20000],pf[20000];
-    double   f[10],g[1000],x[1000],xl[1000],xu[1000],param[13];
+    double   f[1000],g[1000],x[1000],xl[1000],xu[1000],param[13];
     char key[] = "MIDACO_LIMITED_VERSION___[CREATIVE_COMMONS_BY-NC-ND_LICENSE]";
 
     /*****************************************************************/
