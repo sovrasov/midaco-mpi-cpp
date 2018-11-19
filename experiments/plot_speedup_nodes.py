@@ -19,7 +19,7 @@ def get_multi_node_time(file_folder, threads, delay = ''):
 
 def add_line(single_thread_time, multi_threaded_time, thread, delay):
     x = [2, 4, 8, 12]
-    y= [single_thread_time/multi_threaded_time[i - 1] for i in range(1, 5)]
+    y= [single_thread_time/multi_threaded_time[i] for i in range(0, 4)]
     lable = ''
     if delay == '_01':
         lable = 'delay = 0.1'
@@ -43,7 +43,7 @@ def plot_speedup_nodes(stats_folder, nodes, threads, delays, show=True, filename
             multi_node_time = get_multi_node_time(stats_folder, thread, delay)
             add_line(single_node_time, multi_node_time, thread, delay)
 
-    plt.legend ()
+    plt.legend()
     plt.xlabel(r'$Nodes$') 
     plt.ylabel(r'$Speedup$') 
     plt.title(r'$midaco$')
@@ -55,7 +55,6 @@ def plot_speedup_nodes(stats_folder, nodes, threads, delays, show=True, filename
     if show:
         plt.show()
 
-
 def main(args):
     nodes = ['_1', '_2', '_4', '_8', '_12']
     threads = ['_1', '_16']
@@ -64,8 +63,8 @@ def main(args):
     try:
         plot_speedup_nodes(args.stats_folder, nodes, threads, delays,
                     show = args.show, filename = os.path.join(args.stats_folder, filename))
-    except BaseException:
-        print('Something is wrong. Most likely there are no necessary files.')
+    except BaseException as exception:
+        print(exception)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
