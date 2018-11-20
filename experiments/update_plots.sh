@@ -12,8 +12,3 @@ python plot_speedup.py openmp/gklsh4d/
 python plot_speedup.py openmp/gklsh4d_serg/
 python plot_speedup.py openmp/gklss4d/
 python plot_speedup.py openmp/gklss4d_serg/
-
-python plot_speedup_nodes.py gpu_mpi/gklsh4d/
-python plot_speedup_nodes.py gpu_mpi/gklsh4d_serg/
-python plot_speedup_nodes.py gpu_mpi/gklss4d/
-python plot_speedup_nodes.py gpu_mpi/gklss4d_serg/
