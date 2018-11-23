@@ -116,30 +116,29 @@ MidacoSolution solve_midaco_mpi(const IGOProblem<double>* problem, const MidacoM
     {
         for (c=2; c<=p; c++) /* Send iterates X for evaluation */
         {
-          /* Store variables X in dummy dx and send to MPI slave */
-            for( i=0; i<n*params.numThreads; i++){ x[i] = xxx[(c-1)*n*params.numThreads+i]; }
-            MPI_Send( &x, n*params.numThreads, MPI_DOUBLE, c-1,1, MPI_COMM_WORLD);
             for( i=0; i<params.numThreads; i++)
-              if (external_stop(x + i*n))
+              if (external_stop(xxx + (c-1)*n*params.numThreads + i*n))
                 istop = 1;
         }
+        MPI_Scatter(xxx, n*params.numThreads, MPI_DOUBLE, x,
+          n*params.numThreads, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
         #pragma omp parallel for num_threads(params.numThreads)
         for (unsigned t = 0; t < params.numThreads; t++)  {
           for (int i = 0; i < m; i++)
-            ggg[t*m + i] = problem->Calculate(xxx + t*n, i);
-          fff[t*o] = problem->Calculate(xxx + t*n, m);
+            g[t*m + i] = problem->Calculate(xxx + t*n, i);
+          f[t*o] = problem->Calculate(xxx + t*n, m);
           if (external_stop(xxx + t*n))
           #pragma omp atomic write
             istop = 1;
         }
 
-        for (c=2; c<=p; c++) /* Collect results F & G */
-        {
-            MPI_Recv( &f, o*params.numThreads, MPI_DOUBLE, c-1,2, MPI_COMM_WORLD,&status);
-            MPI_Recv( &g, m*params.numThreads, MPI_DOUBLE, c-1,3, MPI_COMM_WORLD,&status);
-            for(i=0;i<o*params.numThreads;i++){fff[(c-1)*o*params.numThreads+i]=f[i];}
-            for(i=0;i<m*params.numThreads;i++){ggg[(c-1)*m*params.numThreads+i]=g[i];}
-        }
+        /* Collect results F & G */
+        MPI_Gather(f, o*params.numThreads, MPI_DOUBLE, fff, o*params.numThreads, MPI_DOUBLE, 0,
+           MPI_COMM_WORLD);
+        MPI_Gather(g, m*params.numThreads, MPI_DOUBLE, ggg, m*params.numThreads, MPI_DOUBLE, 0,
+           MPI_COMM_WORLD);
+
         n_evals += p*params.numThreads;
         /* Call MIDACO */
         midaco(&num_points,&o,&n,&ni,&m,&me,&*xxx,&*fff,&*ggg,&*xl,&*xu,&iflag,
@@ -166,7 +165,8 @@ MidacoSolution solve_midaco_mpi(const IGOProblem<double>* problem, const MidacoM
        istop = 0;
        while(istop<=0)
        {
-         MPI_Recv( &x, n*params.numThreads, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, &status );
+         MPI_Scatter(nullptr, n*params.numThreads, MPI_DOUBLE, x,
+           n*params.numThreads, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
          #pragma omp parallel for num_threads(params.numThreads)
          for (unsigned t = 0; t < params.numThreads; t++)  {
@@ -175,8 +175,8 @@ MidacoSolution solve_midaco_mpi(const IGOProblem<double>* problem, const MidacoM
            f[t*o] = problem->Calculate(x + t*n, m);
          }
 
-         MPI_Send( &f, o*params.numThreads, MPI_DOUBLE, 0, 2, MPI_COMM_WORLD );
-         MPI_Send( &g, m*params.numThreads, MPI_DOUBLE, 0, 3, MPI_COMM_WORLD );
+         MPI_Gather(f, o*params.numThreads, MPI_DOUBLE, nullptr, 0, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+         MPI_Gather(g, m*params.numThreads, MPI_DOUBLE, nullptr, 0, MPI_DOUBLE, 0, MPI_COMM_WORLD);
          MPI_Recv( &istop,1,MPI_INTEGER,0,4,MPI_COMM_WORLD, &status );
        }
     }
