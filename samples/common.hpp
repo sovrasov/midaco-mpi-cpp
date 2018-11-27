@@ -108,14 +108,15 @@ std::function<double()> buildComputeLoad(double delay)
 
   auto computeKernel = [](unsigned iters)
   {
-    double value = 0;
-    for (unsigned i = 0; i < iters; i++)
+    double y[4] = {1};
+    double koef = 1.0;
+    double sum = 0.0;
+    for (int j = 0; j < 4; j++)
     {
-      double a1 = sin(value + i);
-      double a2 = cos(value + i);
-      value = a2*a2 + a1*a1;
+      for (int k = 0; k < 100000; k++) // задержка 80к
+        koef = (koef + exp(1.0) * y[j] / 4.0) * (y[j] / 4.0);
     }
-    return value + 1.;
+    return koef;
   };
 
   double val = 0;
