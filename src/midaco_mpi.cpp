@@ -6,7 +6,7 @@
 #include <omp.h>
 
 MidacoSolution solve_midaco_mpi(const IGOProblem<double>* problem, const MidacoMPIParameters& params,
-    std::function<bool(const double*)> external_stop)
+                                std::function<bool(const double*)> external_stop)
 {
     MidacoSolution solution;
 

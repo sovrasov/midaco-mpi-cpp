@@ -4,7 +4,7 @@
 #include <omp.h>
 
 MidacoSolution solve_midaco_omp(const IGOProblem<double>* problem, const MidacoOMPParameters& params,
-    std::function<bool(const double*)> external_stop)
+                                std::function<bool(const double*)> external_stop)
 {
   MidacoSolution solution;
 
@@ -72,9 +72,9 @@ MidacoSolution solve_midaco_omp(const IGOProblem<double>* problem, const MidacoO
   /* Preparations for Parallelization */
   double *xxx,*fff,*ggg;
   /* Allocate arrays for parallelization */
-  fff = (double *) malloc((p*o)*sizeof(double));
-  ggg = (double *) malloc((p*m)*sizeof(double));
-  xxx = (double *) malloc((p*n)*sizeof(double));
+  fff = new double[p*o];
+  ggg = new double[p*m];
+  xxx = new double[p*n];
   /* Store starting point x in xxx array */
   for(int c=0; c<p; c++){ for( i=0; i<n; i++){ xxx[c*n+i] = x[i]; }}
   /*****************************************************************/
@@ -116,6 +116,10 @@ MidacoSolution solve_midaco_omp(const IGOProblem<double>* problem, const MidacoO
   solution.optValues.push_back(*fff);
   solution.optPoint = std::vector<double>(xxx, xxx + n);
   solution.calcCounters = std::vector<int>(m + 1, n_evals);
+
+  delete[] xxx;
+  delete[] fff;
+  delete[] ggg;
 
   return solution;
 }
